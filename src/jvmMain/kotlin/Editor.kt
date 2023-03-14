@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -57,27 +56,48 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
         val selectedColor = remember { mutableStateOf<PuzzleColor?>(PuzzleColor.Black) }
 
         // lambdas for select when mouse on dot, line or pane
-        val selectObj = { ind: Int, obj: PuzzleObj? ->
+        val glowObj = { ind: Int, obj: PuzzleObj? ->
             selectedObj.value = obj
             selectedInd.value = ind
         }
-        val selectDot = { ind: Int -> selectObj(ind, PuzzleObj.Dot) }
-        val selectLine = { ind: Int -> selectObj(ind, PuzzleObj.Line) }
-        val selectPane = { ind: Int -> selectObj(ind, PuzzleObj.Pane) }
-        val selectNone = { selectObj(-1, null) }
-        val redrawSelect = { selectedInd.value.also { selectedInd.value = -1; selectedInd.value = it } }
+        val glowDot = { ind: Int -> glowObj(ind, PuzzleObj.Dot) }
+        val glowLine = { ind: Int -> glowObj(ind, PuzzleObj.Line) }
+        val glowPane = { ind: Int -> glowObj(ind, PuzzleObj.Pane) }
+        val glowNone = { glowObj(-1, null) }
+        val redrawSelected = { selectedInd.value.also { selectedInd.value = -1; selectedInd.value = it } }
 
         // change puzzle when click on dot, line or pane
         val onClick = fun() {
             if (selectedObj.value == null)
                 return
             onPuzzleClick(puzzle, selectedObj.value!!, selectedComplexity.value, selectedInd.value, selectedColor.value)
-            redrawSelect()
+            redrawSelected()
         }
         val coloredComplexity = listOf(
             ComplexityType.Square,
             ComplexityType.Sun,
         )
+
+        fun isDrawSelecting(): Boolean {
+            val complexityOnDot = listOf(
+                ComplexityType.BlackDot,
+            )
+            val complexityOnLine = listOf(
+                ComplexityType.BlackDot,
+            )
+            val complexityOnPane = listOf(
+                ComplexityType.Sun,
+                ComplexityType.Square,
+            )
+            if (selectedComplexity.value == null)
+                return true
+            return when(selectedObj.value) {
+                PuzzleObj.Dot -> selectedComplexity.value in complexityOnDot
+                PuzzleObj.Line -> selectedComplexity.value in complexityOnLine
+                PuzzleObj.Pane -> selectedComplexity.value in complexityOnPane
+                else -> false
+            }
+        }
 
         // trigger for selecting/unselecting coloredComplexity
         LaunchedEffect(selectedColor.value, selectedComplexity.value) {
@@ -122,79 +142,84 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
 
                 // canvas with puzzle
                 Box(Modifier.size(canvasWidth).graphicsLayer { rotationX = 180f }) {
+                    val onExit = {
+                        if (isDrawSelecting().not())
+                            glowNone()
+                    }
                     // puzzle dots, lines and panes
                     puzzle.paneMap.forEachIndexed { ind, (it, _) ->
                         drawShape(canvasWidth, it.x, it.y, paneDp, paneColor, RoundedCornerShape(20),
-                            onEnter = { selectPane(ind) }
+                            onEnter = { glowPane(ind) }, onExit = onExit
                         )
                     }
                     puzzle.startDots.forEach { drawShape(canvasWidth, it.x, it.y, startDotDp, colorPuzzle) }
                     puzzle.lines.forEachIndexed { ind, it ->
                         drawLine(canvasWidth, it, lineDp, colorPuzzle,
-                            onEnter = { selectLine(ind) }
+                            onEnter = { glowLine(ind) }, onExit = onExit
                         )
                     }
                     puzzle.dots.forEachIndexed { ind, it ->
                         drawShape(canvasWidth, it.x, it.y, lineDp, colorPuzzle,
-                            onEnter = { selectDot(ind) }
+                            onEnter = { glowDot(ind) }, onExit = onExit
                         )
                     }
 
                     // selecting change color
-                    when (selectedObj.value) {
-                        PuzzleObj.Dot -> {
-                            val dot = puzzle.dots[selectedInd.value]
-                            drawShape(canvasWidth, dot.x, dot.y, lineDp, selectColor, RectangleShape,
-                                onExit = selectNone, onClick = onClick
-                            )
-                        }
+                    if (isDrawSelecting())
+                        when (selectedObj.value) {
+                            PuzzleObj.Dot -> {
+                                val dot = puzzle.dots[selectedInd.value]
+                                drawShape(canvasWidth, dot.x, dot.y, lineDp, selectColor, RectangleShape,
+                                    onExit = glowNone, onClick = onClick
+                                )
+                            }
 
-                        PuzzleObj.Line -> {
-                            val line = puzzle.lines[selectedInd.value]
-                            val angle = atan2(line.dot2.y - line.dot1.y, line.dot2.x - line.dot1.x)
-                            val length = lineDp.div(canvasWidth) / 2
-                            val (dx, dy) = cos(angle) * length to sin(angle) * length
-                            val newLine = Line(Dot(line.dot1.x + dx, line.dot1.y + dy), Dot(line.dot2.x - dx, line.dot2.y - dy))
-                            drawLine(canvasWidth, newLine, lineDp, selectColor,
-                                onExit = selectNone, onClick = onClick
-                            )
-                        }
+                            PuzzleObj.Line -> {
+                                val line = puzzle.lines[selectedInd.value]
+                                val angle = atan2(line.dot2.y - line.dot1.y, line.dot2.x - line.dot1.x)
+                                val length = lineDp.div(canvasWidth) / 2
+                                val (dx, dy) = cos(angle) * length to sin(angle) * length
+                                val newLine = Line(Dot(line.dot1.x + dx, line.dot1.y + dy), Dot(line.dot2.x - dx, line.dot2.y - dy))
+                                drawLine(canvasWidth, newLine, lineDp, selectColor,
+                                    onExit = glowNone, onClick = onClick
+                                )
+                            }
 
-                        PuzzleObj.Pane -> {
-                            val pane = puzzle.paneMap[selectedInd.value].first
-                            drawShape(canvasWidth, pane.x, pane.y, paneDp, selectColor, RoundedCornerShape(20),
-                                onExit = selectNone, onClick = onClick
-                            )
-                        }
+                            PuzzleObj.Pane -> {
+                                val pane = puzzle.paneMap[selectedInd.value].first
+                                drawShape(canvasWidth, pane.x, pane.y, paneDp, selectColor, RoundedCornerShape(20),
+                                    onExit = glowNone, onClick = onClick
+                                )
+                            }
 
-                        else -> Unit
-                    }
+                            else -> Unit
+                        }
 
                     // complexity
                     puzzle.complexity.blackDotsOnDot.forEachIndexed { ind, it ->
                         drawShape(canvasWidth, it.x, it.y, blackDotDp, Color.Black,
-                            onEnter = { selectDot(puzzle.dots.indexOf(it)) },
-                            onClick = { puzzle.complexity.blackDotsOnDot.removeAt(ind); redrawSelect() }
+                            onEnter = { glowDot(puzzle.dots.indexOf(it)) },
+                            onClick = { puzzle.complexity.blackDotsOnDot.removeAt(ind); redrawSelected() }
                         )
                     }
                     puzzle.complexity.blackDotsOnLine.forEachIndexed { ind, it ->
                         val x = (it.dot1.x + it.dot2.x) / 2
                         val y = (it.dot1.y + it.dot2.y) / 2
                         drawShape(canvasWidth, x, y, blackDotDp, Color.Black,
-                            onEnter = { selectLine(puzzle.lines.indexOf(it)) },
-                            onClick = { puzzle.complexity.blackDotsOnLine.removeAt(ind); redrawSelect() }
+                            onEnter = { glowLine(puzzle.lines.indexOf(it)) },
+                            onClick = { puzzle.complexity.blackDotsOnLine.removeAt(ind); redrawSelected() }
                         )
                     }
                     puzzle.complexity.suns.forEachIndexed { ind, it ->
                         drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, SunShape(),
-                            onEnter = { selectPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
-                            onClick = { puzzle.complexity.suns.removeAt(ind); redrawSelect() }
+                            onEnter = { glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
+                            onClick = { puzzle.complexity.suns.removeAt(ind); redrawSelected() }
                         )
                     }
                     puzzle.complexity.squares.forEachIndexed { ind, it ->
                         drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, squareShape,
-                            onEnter = { selectPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
-                            onClick = { puzzle.complexity.squares.removeAt(ind); redrawSelect() }
+                            onEnter = { glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
+                            onClick = { puzzle.complexity.squares.removeAt(ind); redrawSelected() }
                         )
                     }
                 }
