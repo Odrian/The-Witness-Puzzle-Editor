@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -43,7 +44,9 @@ private val squareShape = RoundedCornerShape(10)
 fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
     Window(
         onCloseRequest = { onClose(false) },
-        state = WindowState(size = DpSize(canvasWidth + columnWidth * 2 + 15.dp, canvasWidth)),
+        state = WindowState(size = DpSize(canvasWidth + columnWidth * 2 + 15.dp, canvasWidth),
+            position = WindowPosition(Alignment.Center)
+        ),
         title = "Puzzle Editor",
         resizable = false
     ) {

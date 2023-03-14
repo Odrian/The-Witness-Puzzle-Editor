@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import json.copyPuzzle
@@ -87,10 +88,11 @@ fun main() {
         // menu window
         Window(
             onCloseRequest = { save(); exitApplication() },
-            state = WindowState(size = DpSize(windowWidth, windowWidth / windowRatio)),
+            state = WindowState(size = DpSize(windowWidth, windowWidth / windowRatio),
+                position = WindowPosition(Alignment.Center)),
             visible = isInMenu.value && loadingError.value.first.not(),
             resizable = false,
-            title = "",
+            title = "Puzzle Editor",
         ) {
             val topMenuBox = @Composable { onClick: () -> Unit, content: @Composable BoxScope.() -> Unit ->
                 Surface(
@@ -223,6 +225,7 @@ fun main() {
     }
 }
 
+@Suppress("SameParameterValue")
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun drawPuzzle(puzzle: Puzzle, showIndex: Boolean, onIndexClick: () -> Unit = {}, onClick: () -> Unit) {

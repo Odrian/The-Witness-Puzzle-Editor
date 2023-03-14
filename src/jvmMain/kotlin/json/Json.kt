@@ -19,7 +19,7 @@ import kotlinx.serialization.Serializable
 
     actually, I think it doesn't matter at all
 
-    very good idea:
+    great idea:
     save a few puzzle samples without complexity,
     and each puzzle will save only a sample link and complexity
  */
