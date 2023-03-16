@@ -38,7 +38,7 @@ compose.desktop {
 //            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             targetFormats(TargetFormat.Exe)
             packageName = "PuzzleEditor"
-            packageVersion = "1.1.0"
+            packageVersion = "1.1.1"
         }
     }
 }
