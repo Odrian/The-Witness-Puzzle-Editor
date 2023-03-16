@@ -50,34 +50,17 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
         resizable = false
     ) {
         // 'selected' change when mouse on an object
-        val selectedInd = remember { mutableStateOf(-1) } // index of a selected object
-        val selectedObj = remember { mutableStateOf<PuzzleObj?>(null) } // dot, line or pane
-        val selectedComplexity = remember { mutableStateOf<ComplexityType?>(null) } // selected puzzle type
-        val selectedColor = remember { mutableStateOf<PuzzleColor?>(PuzzleColor.Black) }
-
-        // lambdas for select when mouse on dot, line or pane
-        val glowObj = { ind: Int, obj: PuzzleObj? ->
-            selectedObj.value = obj
-            selectedInd.value = ind
-        }
-        val glowDot = { ind: Int -> glowObj(ind, PuzzleObj.Dot) }
-        val glowLine = { ind: Int -> glowObj(ind, PuzzleObj.Line) }
-        val glowPane = { ind: Int -> glowObj(ind, PuzzleObj.Pane) }
-        val glowNone = { glowObj(-1, null) }
-        val redrawSelected = { selectedInd.value.also { selectedInd.value = -1; selectedInd.value = it } }
+        val selectViewModel = remember { SelectViewModel() }
 
         // change puzzle when click on dot, line or pane
-        val onClick = fun() {
-            if (selectedObj.value == null)
-                return
-            onPuzzleClick(puzzle, selectedObj.value!!, selectedComplexity.value, selectedInd.value, selectedColor.value)
-            redrawSelected()
-        }
+        val onClick = { onPuzzleClick(puzzle, selectViewModel) }
+
         val coloredComplexity = listOf(
             ComplexityType.Square,
             ComplexityType.Sun,
         )
 
+        // true, if a user can put PuzzleComplexity on selected PuzzleObject
         fun isDrawSelecting(): Boolean {
             val complexityOnDot = listOf(
                 ComplexityType.BlackDot,
@@ -89,24 +72,24 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                 ComplexityType.Sun,
                 ComplexityType.Square,
             )
-            if (selectedComplexity.value == null)
+            if (selectViewModel.selectedComplexity == null)
                 return true
-            return when(selectedObj.value) {
-                PuzzleObj.Dot -> selectedComplexity.value in complexityOnDot
-                PuzzleObj.Line -> selectedComplexity.value in complexityOnLine
-                PuzzleObj.Pane -> selectedComplexity.value in complexityOnPane
+            return when(selectViewModel.selectedObj) {
+                PuzzleObj.Dot -> selectViewModel.selectedComplexity in complexityOnDot
+                PuzzleObj.Line -> selectViewModel.selectedComplexity in complexityOnLine
+                PuzzleObj.Pane -> selectViewModel.selectedComplexity in complexityOnPane
                 else -> false
             }
         }
 
         // trigger for selecting/unselecting coloredComplexity
-        LaunchedEffect(selectedColor.value, selectedComplexity.value) {
-            if (selectedComplexity.value in coloredComplexity) {
-                if (selectedColor.value == null)
-                    selectedColor.value = PuzzleColor.Black
+        LaunchedEffect(selectViewModel.selectedColor, selectViewModel.selectedComplexity) {
+            if (selectViewModel.selectedComplexity in coloredComplexity) {
+                if (selectViewModel.selectedColor == null)
+                    selectViewModel.selectedColor = PuzzleColor.Black
             } else {
-                if (selectedColor.value != null)
-                    selectedColor.value = null
+                if (selectViewModel.selectedColor != null)
+                    selectViewModel.selectedColor = null
             }
         }
         MaterialTheme {
@@ -118,15 +101,18 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                     Arrangement.Top,
                     Alignment.CenterHorizontally,
                 ) {
-                    box(colPadding, selectedComplexity,
+                    val setComplexity: (ComplexityType?) -> Unit = {
+                        selectViewModel.selectedComplexity = it
+                    }
+                    box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.BlackDot) {
                         Box(Modifier.size(columnShapeWidth.times(0.5f)).background(Color.Black, CircleShape))
                     }
-                    box(colPadding, selectedComplexity,
+                    box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.Sun) {
                         Box(Modifier.size(columnShapeWidth).background(Color.Black, SunShape()))
                     }
-                    box(colPadding, selectedComplexity,
+                    box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.Square) {
                         Box(Modifier.size(columnShapeWidth).background(Color.White, RoundedCornerShape(20)))
                     }
@@ -144,51 +130,51 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                 Box(Modifier.size(canvasWidth).graphicsLayer { rotationX = 180f }) {
                     val onExit = {
                         if (isDrawSelecting().not())
-                            glowNone()
+                            selectViewModel.glowNone()
                     }
                     // puzzle dots, lines and panes
                     puzzle.paneMap.forEachIndexed { ind, (it, _) ->
                         drawShape(canvasWidth, it.x, it.y, paneDp, paneColor, RoundedCornerShape(20),
-                            onEnter = { glowPane(ind) }, onExit = onExit
+                            onEnter = { selectViewModel.glowPane(ind) }, onExit = onExit
                         )
                     }
                     puzzle.startDots.forEach { drawShape(canvasWidth, it.x, it.y, startDotDp, colorPuzzle) }
                     puzzle.lines.forEachIndexed { ind, it ->
                         drawLine(canvasWidth, it, lineDp, colorPuzzle,
-                            onEnter = { glowLine(ind) }, onExit = onExit
+                            onEnter = { selectViewModel.glowLine(ind) }, onExit = onExit
                         )
                     }
                     puzzle.dots.forEachIndexed { ind, it ->
                         drawShape(canvasWidth, it.x, it.y, lineDp, colorPuzzle,
-                            onEnter = { glowDot(ind) }, onExit = onExit
+                            onEnter = { selectViewModel.glowDot(ind) }, onExit = onExit
                         )
                     }
 
                     // selecting change color
                     if (isDrawSelecting())
-                        when (selectedObj.value) {
+                        when (selectViewModel.selectedObj) {
                             PuzzleObj.Dot -> {
-                                val dot = puzzle.dots[selectedInd.value]
+                                val dot = puzzle.dots[selectViewModel.selectedInd]
                                 drawShape(canvasWidth, dot.x, dot.y, lineDp, selectColor, RectangleShape,
-                                    onExit = glowNone, onClick = onClick
+                                    onExit = selectViewModel::glowNone, onClick = onClick
                                 )
                             }
 
                             PuzzleObj.Line -> {
-                                val line = puzzle.lines[selectedInd.value]
+                                val line = puzzle.lines[selectViewModel.selectedInd]
                                 val angle = atan2(line.dot2.y - line.dot1.y, line.dot2.x - line.dot1.x)
                                 val length = lineDp.div(canvasWidth) / 2
                                 val (dx, dy) = cos(angle) * length to sin(angle) * length
                                 val newLine = Line(Dot(line.dot1.x + dx, line.dot1.y + dy), Dot(line.dot2.x - dx, line.dot2.y - dy))
                                 drawLine(canvasWidth, newLine, lineDp, selectColor,
-                                    onExit = glowNone, onClick = onClick
+                                    onExit = selectViewModel::glowNone, onClick = onClick
                                 )
                             }
 
                             PuzzleObj.Pane -> {
-                                val pane = puzzle.paneMap[selectedInd.value].first
+                                val pane = puzzle.paneMap[selectViewModel.selectedInd].first
                                 drawShape(canvasWidth, pane.x, pane.y, paneDp, selectColor, RoundedCornerShape(20),
-                                    onExit = glowNone, onClick = onClick
+                                    onExit = selectViewModel::glowNone, onClick = onClick
                                 )
                             }
 
@@ -196,30 +182,30 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                         }
 
                     // complexity
-                    puzzle.complexity.blackDotsOnDot.forEachIndexed { ind, it ->
+                    puzzle.complexity.blackDotsOnDot.forEach {
                         drawShape(canvasWidth, it.x, it.y, blackDotDp, Color.Black,
-                            onEnter = { glowDot(puzzle.dots.indexOf(it)) },
-                            onClick = { puzzle.complexity.blackDotsOnDot.removeAt(ind); redrawSelected() }
+                            onEnter = { selectViewModel.glowDot(puzzle.dots.indexOf(it)) },
+                            onClick = onClick
                         )
                     }
-                    puzzle.complexity.blackDotsOnLine.forEachIndexed { ind, it ->
+                    puzzle.complexity.blackDotsOnLine.forEach {
                         val x = (it.dot1.x + it.dot2.x) / 2
                         val y = (it.dot1.y + it.dot2.y) / 2
                         drawShape(canvasWidth, x, y, blackDotDp, Color.Black,
-                            onEnter = { glowLine(puzzle.lines.indexOf(it)) },
-                            onClick = { puzzle.complexity.blackDotsOnLine.removeAt(ind); redrawSelected() }
+                            onEnter = { selectViewModel.glowLine(puzzle.lines.indexOf(it)) },
+                            onClick = onClick
                         )
                     }
-                    puzzle.complexity.suns.forEachIndexed { ind, it ->
+                    puzzle.complexity.suns.forEach {
                         drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, SunShape(),
-                            onEnter = { glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
-                            onClick = { puzzle.complexity.suns.removeAt(ind); redrawSelected() }
+                            onEnter = { selectViewModel.glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
+                            onClick = onClick
                         )
                     }
-                    puzzle.complexity.squares.forEachIndexed { ind, it ->
+                    puzzle.complexity.squares.forEach {
                         drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, squareShape,
-                            onEnter = { glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
-                            onClick = { puzzle.complexity.squares.removeAt(ind); redrawSelected() }
+                            onEnter = { selectViewModel.glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
+                            onClick = onClick
                         )
                     }
                 }
@@ -229,11 +215,12 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                     Arrangement.Top,
                     Alignment.CenterHorizontally,
                 ) {
-                    if (selectedComplexity.value in coloredComplexity)
+                    if (selectViewModel.selectedComplexity in coloredComplexity)
                         PuzzleColor.values().forEach {
                             val contrastColor = Color(Color.White.value - it.color.value + Color.Black.value)
                             val averVal = (contrastColor.blue + contrastColor.red + contrastColor.green) / 3
-                            box(colPadding, selectedColor, it,
+                            box(colPadding,selectViewModel.selectedColor, { selectViewModel.selectedColor = it },
+                                it,
                                 color = it.color,
                                 selectColor = Color(averVal, averVal, averVal),
                                 canUnselect = false) {}
@@ -244,12 +231,36 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
     }
 }
 
+private class SelectViewModel {
+    var selectedInd by mutableStateOf(-1) // index of a selected object
+    var selectedObj by mutableStateOf<PuzzleObj?>(null) // dot, line or pane
+    var selectedComplexity by mutableStateOf<ComplexityType?>(null) // selected puzzle type
+    var selectedColor by mutableStateOf<PuzzleColor?>(PuzzleColor.Black)
+
+    fun glowObj(ind: Int, obj: PuzzleObj?) {
+        selectedInd = ind
+        selectedObj = obj
+    }
+    fun glowNone() = glowObj(-1, null)
+    fun glowDot(ind: Int) = glowObj(ind, PuzzleObj.Dot)
+    fun glowLine(ind: Int) = glowObj(ind, PuzzleObj.Line)
+    fun glowPane(ind: Int) = glowObj(ind, PuzzleObj.Pane)
+
+    fun redrawGlow() {
+        selectedInd.also {
+            selectedInd = -1
+            selectedInd = it
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun <T> box(
     padding: Dp,
-    selected: MutableState<T?>,
-    select: T,
+    selected: T?,
+    selectFunc: (T?) -> Unit,
+    selectType: T,
     canUnselect: Boolean = true,
     color: Color = Color.LightGray,
     selectColor: Color = Color.DarkGray,
@@ -257,22 +268,22 @@ private fun <T> box(
 ) {
     Surface(
         onClick = {
-            if (selected.value != select) {
-                selected.value = select
+            if (selected != selectType) {
+                selectFunc(selectType)
             } else {
                 if (canUnselect)
-                    selected.value = null
+                    selectFunc(null)
             }
         },
         modifier = Modifier.padding(padding).size(columnWidth - padding * 2),
         shape = RoundedCornerShape(20),
-        color = if (selected.value == select) selectColor else color,
+        color = if (selected == selectType) selectColor else color,
     ) {
         Box(
             Modifier
                 .fillMaxWidth().padding(padding).size(columnWidth - padding * 2)
                 .background(
-                    if (selected.value == select) color else Color.Transparent,
+                    if (selected == selectType) color else Color.Transparent,
                     RoundedCornerShape(20))
             , Alignment.Center, content = content
         )
@@ -298,22 +309,19 @@ private fun boxButton(
 
 private fun onPuzzleClick(
     puzzle: Puzzle,
-    selectedObj: PuzzleObj,
-    selectedComplexity: ComplexityType?,
-    selectedInd: Int,
-    selectedColor: PuzzleColor?,
+    selectViewModel: SelectViewModel,
 ) {
     val complexity = puzzle.complexity
 
-    when (selectedObj) {
+    when (selectViewModel.selectedObj) {
         PuzzleObj.Dot -> {
-            val dot = puzzle.dots[selectedInd]
+            val dot = puzzle.dots[selectViewModel.selectedInd]
             val contains = complexity.blackDotsOnDot.contains(dot)
 
             if (contains) {
                 complexity.blackDotsOnDot.remove(dot)
             } else
-                when (selectedComplexity) {
+                when (selectViewModel.selectedComplexity) {
                     ComplexityType.BlackDot -> { complexity.blackDotsOnDot.add(dot) }
 
                     else -> {}
@@ -321,13 +329,13 @@ private fun onPuzzleClick(
         }
 
         PuzzleObj.Line -> {
-            val line = puzzle.lines[selectedInd]
+            val line = puzzle.lines[selectViewModel.selectedInd]
             val contains = complexity.blackDotsOnLine.contains(line)
 
             if (contains) {
                 complexity.blackDotsOnLine.remove(line)
             } else
-                when (selectedComplexity) {
+                when (selectViewModel.selectedComplexity) {
                     ComplexityType.BlackDot -> { complexity.blackDotsOnLine.add(line) }
 
                     else -> {}
@@ -335,28 +343,27 @@ private fun onPuzzleClick(
         }
 
         PuzzleObj.Pane -> {
-            val pane = puzzle.paneMap[selectedInd].first
+            val pane = puzzle.paneMap[selectViewModel.selectedInd].first
             fun ColoredPane?.isSame(): Boolean {
                 if (this == null)
                     return false
-                return this.color == selectedColor
+                return this.color == selectViewModel.selectedColor
             }
             val contains = complexity.suns.firstOrNull { it.pane == pane }.isSame() ||
                         complexity.squares.firstOrNull { it.pane == pane }.isSame()
-            println(complexity.suns.firstOrNull { it.pane == pane }.isSame())
 
             if (contains) {
                 complexity.suns.removeIf { it.pane == pane }
                 complexity.squares.removeIf { it.pane == pane }
             } else {
-                when (selectedComplexity) {
+                when (selectViewModel.selectedComplexity) {
                     ComplexityType.Sun -> {
                         complexity.suns.removeIf { it.pane == pane }
-                        complexity.suns.add(ColoredPane(pane, selectedColor!!))
+                        complexity.suns.add(ColoredPane(pane, selectViewModel.selectedColor!!))
                     }
 
                     ComplexityType.Square -> {
-                        complexity.squares.add(ColoredPane(pane, selectedColor!!))
+                        complexity.squares.add(ColoredPane(pane, selectViewModel.selectedColor!!))
                         complexity.squares.removeIf { it.pane == pane }
                     }
 
@@ -364,7 +371,9 @@ private fun onPuzzleClick(
                 }
             }
         }
+        else -> {}
     }
+    selectViewModel.redrawGlow()
 }
 
 @Composable

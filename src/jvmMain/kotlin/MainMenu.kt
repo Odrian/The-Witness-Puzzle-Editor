@@ -3,10 +3,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -21,10 +18,7 @@ import json.copyPuzzle
 import json.loadPuzzles
 import json.savePath
 import json.savePuzzles
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.awt.Desktop
 import java.net.URI
 import java.util.*
@@ -39,21 +33,19 @@ private const val puzzlesInRow = 3
 private val windowWidth = (puzzleItemDp + padding * 2) * puzzlesInRow + 15.dp // IDK why It needs +16.dp
 private const val windowRatio = 1f // 16/9f
 
-@OptIn(ExperimentalMaterialApi::class, DelicateCoroutinesApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 fun main() {
     application {
         val puzzles = remember { mutableStateOf<MutableList<Puzzle>?>(null) }
-        val loading = remember { mutableStateOf(true) }
-        val loadingError = remember { mutableStateOf(false to "") }
+
+        val loadingViewModel = remember { LoadingViewModel() }
         LaunchedEffect(Unit) {
-            GlobalScope.launch {
-                delay(200)
+            loadingViewModel.load {
                 try {
                     puzzles.value = loadPuzzles()
                 } catch (e: Exception) {
-                    loadingError.value = true to e.stackTraceToString()
+                    loadingViewModel.loadingError = true to e.stackTraceToString()
                 }
-                loading.value = false
             }
         }
 
@@ -64,7 +56,7 @@ fun main() {
 
         val isUpdateMenu = remember { mutableStateOf(false) } // if true disable draw puzzles
         val save = {
-            if (loading.value.not()) {
+            if (loadingViewModel.loading.not()) {
                 puzzles.value!!.sortBy { it.id }
                 savePuzzles(puzzles.value!!)
 
@@ -75,12 +67,12 @@ fun main() {
         }
 
         val isChangingIndex = remember { mutableStateOf(false) }
-        val changeIndexViewModel = remember { mutableStateOf<ChangeIndexViewModel?>(null) }
+        val changeIndexData = remember { mutableStateOf<ChangeIndexData?>(null) }
 
-        if (loadingError.value.first)
+        if (loadingViewModel.loadingError.first)
             Window(::exitApplication, title = "Loading error", resizable = false) {
                 TextField(
-                    "Error while loading $savePath\n\n" + loadingError.value.second
+                    "Error while loading $savePath\n\n" + loadingViewModel.loadingError.second
                     , {})
             }
 
@@ -89,7 +81,7 @@ fun main() {
             onCloseRequest = { save(); exitApplication() },
             state = WindowState(size = DpSize(windowWidth, windowWidth / windowRatio),
                 position = WindowPosition(Alignment.Center)),
-            visible = isInMenu.value && loadingError.value.first.not(),
+            visible = isInMenu.value && loadingViewModel.loadingError.first.not(),
             resizable = false,
             title = "Puzzle Editor",
         ) {
@@ -104,7 +96,7 @@ fun main() {
                 }
             }
             Column {
-                if (loading.value) {
+                if (loadingViewModel.loading) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
                         Text("Loading...")
                     }
@@ -121,8 +113,8 @@ fun main() {
                                     if (puzzles.value!!.size > index) // isUpdateMenu is only for updating list
                                         drawPuzzle(puzzles.value!![index], true, {
                                             // click on index
-                                            changeIndexViewModel.value =
-                                                ChangeIndexViewModel(index, puzzles.value!![index].id)
+                                            changeIndexData.value =
+                                                ChangeIndexData(index, puzzles.value!![index].id)
                                             isChangingIndex.value = true
                                         }) {
                                             selectedPuzzleIndex.value = index
@@ -140,7 +132,7 @@ fun main() {
             }
             Row {
                 topMenuBox({
-                    if (loading.value.not()) {
+                    if (loadingViewModel.loading.not()) {
                         puzzles.value!!.add(createSimplePuzzle().also {
                             if (puzzles.value!!.size != 0)
                                 it.id = puzzles.value!!.last().id + 1
@@ -159,37 +151,37 @@ fun main() {
             }
 
             if (isChangingIndex.value) {
-                val id = remember { mutableStateOf(changeIndexViewModel.value!!.id.toString()) }
+                val id = remember { mutableStateOf(changeIndexData.value!!.id.toString()) }
                 AlertDialog(
                     onDismissRequest = { isChangingIndex.value = false },
                     shape = RoundedCornerShape(10),
                     buttons = {
                         val errorText = remember { mutableStateOf("") }
                         Column(Modifier.padding(10.dp)) {
-                            Text("Change id. It was \'${changeIndexViewModel.value?.id}\'", Modifier.padding(5.dp))
+                            Text("Change id. It was \'${changeIndexData.value?.id}\'", Modifier.padding(5.dp))
                             TextField(id.value, { id.value = it }, label = { Text("new id") })
                             Text(errorText.value, color = Color.Red)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Button({
-                                    changeIndexViewModel.value = null
+                                    changeIndexData.value = null
                                     isChangingIndex.value = false
                                     save()
                                 }) { Text("cancel") }
                                 Button({
-                                    puzzles.value!!.removeAt(changeIndexViewModel.value!!.index)
+                                    puzzles.value!!.removeAt(changeIndexData.value!!.index)
 
-                                    changeIndexViewModel.value = null
+                                    changeIndexData.value = null
                                     isChangingIndex.value = false
                                     save()
                                 }) { Text("delete") }
                                 Button({
                                     val newId = id.value.toIntOrNull()
-                                    val index = changeIndexViewModel.value!!.index
+                                    val index = changeIndexData.value!!.index
                                     if (newId == null) {
                                         errorText.value = "Can't cast id to int"
                                     } else {
                                         var isUnique = puzzles.value!!.firstOrNull { it.id == newId } == null
-                                        isUnique = isUnique || (newId == changeIndexViewModel.value!!.id)
+                                        isUnique = isUnique || (newId == changeIndexData.value!!.id)
 
                                         if (isUnique.not()) {
                                             errorText.value = "Not unique id. You can use \'${puzzles.value!!.last().id + 1}\'"
@@ -197,7 +189,7 @@ fun main() {
                                             puzzles.value!![index].id = newId
 
                                             isChangingIndex.value = false
-                                            changeIndexViewModel.value = null
+                                            changeIndexData.value = null
                                             save()
                                         }
                                     }
@@ -221,6 +213,20 @@ fun main() {
 
                 isInMenu.value = true
             }
+    }
+}
+
+private class LoadingViewModel {
+    var loading by mutableStateOf(true)
+    var loadingError by mutableStateOf(false to "")
+
+    @OptIn(DelicateCoroutinesApi::class)
+    fun load(block: CoroutineScope.() -> Unit) {
+        GlobalScope.launch {
+            delay(300)
+            block()
+            loading = false
+        }
     }
 }
 
@@ -261,7 +267,7 @@ private fun drawPuzzle(puzzle: Puzzle, showIndex: Boolean, onIndexClick: () -> U
     }
 }
 
-private class ChangeIndexViewModel(val index: Int, val id: Int)
+private data class ChangeIndexData(val index: Int, val id: Int)
 
 fun openInBrowser(uri: URI) {
     val osName by lazy(LazyThreadSafetyMode.NONE) { System.getProperty("os.name").lowercase(Locale.getDefault()) }
