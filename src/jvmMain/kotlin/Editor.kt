@@ -364,8 +364,8 @@ private fun onPuzzleClick(
                     }
 
                     ComplexityType.Square -> {
-                        complexity.squares.add(ColoredPane(pane, selectViewModel.selectedColor!!))
                         complexity.squares.removeIf { it.pane == pane }
+                        complexity.squares.add(ColoredPane(pane, selectViewModel.selectedColor!!))
                     }
 
                     else -> {}
