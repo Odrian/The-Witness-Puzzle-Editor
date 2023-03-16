@@ -6,7 +6,6 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -25,12 +24,11 @@ import java.util.*
 
 private val puzzleItemDp = 200.dp
 private val puzzleDrawDp = 400.dp
-private val puzzleScale = puzzleItemDp / puzzleDrawDp
 private val padding = 5.dp
 
 private const val puzzlesInRow = 3
 
-private val windowWidth = (puzzleItemDp + padding * 2) * puzzlesInRow + 15.dp // IDK why It needs +16.dp
+private val windowWidth = (puzzleItemDp + padding * 2) * puzzlesInRow
 private const val windowRatio = 1f // 16/9f
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -107,7 +105,7 @@ fun main() {
                                 (puzzles.value!!.size + puzzlesInRow - 1) / puzzlesInRow
                             else 0
                         ) { rowInd ->
-                            Row {
+                            Row(Modifier.fillMaxWidth()) {
                                 for (colInd in 0 until puzzlesInRow) {
                                     val index = rowInd * puzzlesInRow + colInd
                                     if (puzzles.value!!.size > index) // isUpdateMenu is only for updating list
@@ -133,7 +131,7 @@ fun main() {
             Row {
                 topMenuBox({
                     if (loadingViewModel.loading.not()) {
-                        puzzles.value!!.add(createSimplePuzzle().also {
+                        puzzles.value!!.add(createSimpleRectPuzzle().also {
                             if (puzzles.value!!.size != 0)
                                 it.id = puzzles.value!!.last().id + 1
                             else
@@ -243,15 +241,10 @@ private fun drawPuzzle(puzzle: Puzzle, showIndex: Boolean, onIndexClick: () -> U
     ) {
         // this offset works well, and I don't touch it
         // (+-2 because all drawing from the left top corner and drawPuzzle flip image)
-        Box(Modifier
-            .scale(puzzleScale)
-            .absoluteOffset((puzzleDrawDp - puzzleItemDp).div(-2), (puzzleDrawDp - puzzleItemDp).div(2))
-        ) {
-            drawPuzzle(puzzleDrawDp, puzzle)
-        }
+        drawPuzzle(puzzleItemDp, puzzleDrawDp, puzzle)
         Surface(
             onClick = onClick,
-            Modifier.size(puzzleItemDp + padding * 2),
+            Modifier.size(puzzleItemDp),
             shape = RoundedCornerShape(10),
             color = Color.Transparent
         ) {}

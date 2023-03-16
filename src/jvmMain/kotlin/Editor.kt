@@ -9,6 +9,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -43,7 +44,7 @@ private val squareShape = RoundedCornerShape(10)
 fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
     Window(
         onCloseRequest = { onClose(false) },
-        state = WindowState(size = DpSize(canvasWidth + columnWidth * 2 + 15.dp, canvasWidth),
+        state = WindowState(size = DpSize(canvasWidth + columnWidth * 2 + 15.dp, canvasWidth - 1.dp),
             position = WindowPosition(Alignment.Center)
         ),
         title = "Puzzle Editor",
@@ -377,18 +378,30 @@ private fun onPuzzleClick(
 }
 
 @Composable
-fun drawPuzzle(boxSize: Dp, puzzle: Puzzle) {
-    Box(Modifier.fillMaxSize().graphicsLayer { rotationX = 180f }) {
-        // puzzle
-        puzzle.startDots.forEach { drawShape(boxSize, it.x, it.y, startDotDp, colorPuzzle) }
-        puzzle.lines.forEach { drawLine(boxSize, it, lineDp, colorPuzzle) }
-        puzzle.dots.forEach { drawShape(boxSize, it.x, it.y, lineDp, colorPuzzle) }
+fun drawPuzzle(
+    puzzleItemDp: Dp,
+    puzzleDrawDp: Dp,
+    puzzle: Puzzle
+) {
+    Box(Modifier
+        .scale(puzzleItemDp / puzzleDrawDp)
+        .absoluteOffset((puzzleDrawDp - puzzleItemDp).div(-2), (puzzleDrawDp - puzzleItemDp).div(2))
+    ) {
+        Box(Modifier
+            .fillMaxSize()
+            .graphicsLayer { rotationX = 180f }
+        ) {
+            // puzzle
+            puzzle.startDots.forEach { drawShape(puzzleDrawDp, it.x, it.y, startDotDp, colorPuzzle) }
+            puzzle.lines.forEach { drawLine(puzzleDrawDp, it, lineDp, colorPuzzle) }
+            puzzle.dots.forEach { drawShape(puzzleDrawDp, it.x, it.y, lineDp, colorPuzzle) }
 
-        // complexity
-        puzzle.complexity.blackDotsOnDot.forEach { drawShape(boxSize, it.x, it.y, blackDotDp, Color.Black) }
-        puzzle.complexity.blackDotsOnLine.forEach { drawShape(boxSize, it.getX(), it.getY(), blackDotDp, Color.Black) }
-        puzzle.complexity.suns.forEach { drawShape(boxSize, it.pane.x, it.pane.y, 20.dp, it.color.color, SunShape()) }
-        puzzle.complexity.squares.forEach { drawShape(boxSize, it.pane.x, it.pane.y, 20.dp, it.color.color, squareShape) }
+            // complexity
+            puzzle.complexity.blackDotsOnDot.forEach { drawShape(puzzleDrawDp, it.x, it.y, blackDotDp, Color.Black) }
+            puzzle.complexity.blackDotsOnLine.forEach { drawShape(puzzleDrawDp, it.getX(), it.getY(), blackDotDp, Color.Black) }
+            puzzle.complexity.suns.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, SunShape()) }
+            puzzle.complexity.squares.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, squareShape) }
+        }
     }
 }
 
