@@ -39,6 +39,7 @@ private val selectColor = Color.Cyan
 private val paneColor = Color(colorPuzzle.red, colorPuzzle.green, colorPuzzle.blue, 0x40 / (0xFF).toFloat())
 
 private val squareShape = RoundedCornerShape(10)
+private val lineBreakLength = 0.2f
 
 @Composable
 fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
@@ -68,6 +69,7 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
             )
             val complexityOnLine = listOf(
                 ComplexityType.BlackDot,
+                ComplexityType.LineBreak,
             )
             val complexityOnPane = listOf(
                 ComplexityType.Sun,
@@ -108,6 +110,14 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                     box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.BlackDot) {
                         Box(Modifier.size(columnShapeWidth.times(0.5f)).background(Color.Black, CircleShape))
+                    }
+                    box(colPadding, selectViewModel.selectedComplexity, setComplexity,
+                        ComplexityType.LineBreak) {
+                        Row(Modifier.fillMaxSize().scale(1f, 0.2f)) {
+                            Spacer(Modifier.weight((1f - lineBreakLength)/2).fillMaxSize().background(colorPuzzle))
+                            Spacer(Modifier.weight(lineBreakLength).fillMaxSize())
+                            Spacer(Modifier.weight((1f - lineBreakLength)/2).fillMaxSize().background(colorPuzzle))
+                        }
                     }
                     box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.Sun) {
@@ -194,6 +204,13 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                         val y = (it.dot1.y + it.dot2.y) / 2
                         drawShape(canvasWidth, x, y, blackDotDp, Color.Black,
                             onEnter = { selectViewModel.glowLine(puzzle.lines.indexOf(it)) },
+                            onClick = onClick
+                        )
+                    }
+                    puzzle.complexity.lineBreaks.forEach {
+                        drawLine(canvasWidth, it, lineDp, Color.White, lengthScale = lineBreakLength,
+                            onEnter = { selectViewModel.glowLine(puzzle.lines.indexOf(it)) },
+                            onExit = selectViewModel::glowNone,
                             onClick = onClick
                         )
                     }
@@ -331,13 +348,16 @@ private fun onPuzzleClick(
 
         PuzzleObj.Line -> {
             val line = puzzle.lines[selectViewModel.selectedInd]
-            val contains = complexity.blackDotsOnLine.contains(line)
+            val contains = complexity.blackDotsOnLine.contains(line) ||
+                    complexity.lineBreaks.contains(line)
 
             if (contains) {
                 complexity.blackDotsOnLine.remove(line)
+                complexity.lineBreaks.remove(line)
             } else
                 when (selectViewModel.selectedComplexity) {
                     ComplexityType.BlackDot -> { complexity.blackDotsOnLine.add(line) }
+                    ComplexityType.LineBreak -> { complexity.lineBreaks.add(line) }
 
                     else -> {}
                 }
@@ -345,13 +365,8 @@ private fun onPuzzleClick(
 
         PuzzleObj.Pane -> {
             val pane = puzzle.paneMap[selectViewModel.selectedInd].first
-            fun ColoredPane?.isSame(): Boolean {
-                if (this == null)
-                    return false
-                return this.color == selectViewModel.selectedColor
-            }
-            val contains = complexity.suns.firstOrNull { it.pane == pane }.isSame() ||
-                        complexity.squares.firstOrNull { it.pane == pane }.isSame()
+            val contains = complexity.suns.firstOrNull { it.pane == pane } != null ||
+                    complexity.squares.firstOrNull { it.pane == pane } != null
 
             if (contains) {
                 complexity.suns.removeIf { it.pane == pane }
@@ -381,7 +396,8 @@ private fun onPuzzleClick(
 fun drawPuzzle(
     puzzleItemDp: Dp,
     puzzleDrawDp: Dp,
-    puzzle: Puzzle
+    puzzle: Puzzle,
+    backgroundColor: Color = Color.White,
 ) {
     Box(Modifier
         .scale(puzzleItemDp / puzzleDrawDp)
@@ -399,6 +415,7 @@ fun drawPuzzle(
             // complexity
             puzzle.complexity.blackDotsOnDot.forEach { drawShape(puzzleDrawDp, it.x, it.y, blackDotDp, Color.Black) }
             puzzle.complexity.blackDotsOnLine.forEach { drawShape(puzzleDrawDp, it.getX(), it.getY(), blackDotDp, Color.Black) }
+            puzzle.complexity.lineBreaks.forEach { drawLine(puzzleDrawDp, it, lineDp, backgroundColor, lengthScale = lineBreakLength) }
             puzzle.complexity.suns.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, SunShape()) }
             puzzle.complexity.squares.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, squareShape) }
         }
@@ -412,6 +429,7 @@ private enum class PuzzleObj {
 }
 private enum class ComplexityType {
     BlackDot,
+    LineBreak,
     Sun,
     Square,
 }

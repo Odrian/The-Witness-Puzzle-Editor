@@ -241,7 +241,7 @@ private fun drawPuzzle(puzzle: Puzzle, showIndex: Boolean, onIndexClick: () -> U
     ) {
         // this offset works well, and I don't touch it
         // (+-2 because all drawing from the left top corner and drawPuzzle flip image)
-        drawPuzzle(puzzleItemDp, puzzleDrawDp, puzzle)
+        drawPuzzle(puzzleItemDp, puzzleDrawDp, puzzle, backgroundColor = Color.LightGray)
         Surface(
             onClick = onClick,
             Modifier.size(puzzleItemDp),

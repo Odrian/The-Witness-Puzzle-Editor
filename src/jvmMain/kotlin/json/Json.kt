@@ -41,6 +41,7 @@ internal data class ColoredPaneJson(
 internal data class ComplexityJson(
     var blackDotsOnDot: List<Int>? = null,
     var blackDotsOnLine: List<LineJson>? = null,
+    var lineBreaks: List<LineJson>? = null,
     var suns: List<ColoredPaneJson>? = null,
     var squares: List<ColoredPaneJson>? = null,
 ) {
@@ -49,6 +50,8 @@ internal data class ComplexityJson(
             blackDotsOnDot = listOf()
         if (blackDotsOnLine == null)
             blackDotsOnLine = listOf()
+        if (lineBreaks == null)
+            lineBreaks = listOf()
         if (suns == null)
             suns = listOf()
         if (squares == null)
@@ -89,6 +92,7 @@ internal fun Puzzle.toPuzzleJson(): PuzzleJson {
         ComplexityJson(
             complexity.blackDotsOnDot.map { dots.indexOf(it) },
             complexity.blackDotsOnLine.map { it.toLineJson() },
+            complexity.lineBreaks.map { it.toLineJson() },
             complexity.suns.map { it.toColoredPaneJson() },
             complexity.squares.map { it.toColoredPaneJson() },
         )
@@ -113,6 +117,7 @@ internal fun PuzzleJson.toPuzzle(): Puzzle {
         Complexity(
             complexityJson.blackDotsOnDot!!.map { dots[it] }.toMutableList(),
             complexityJson.blackDotsOnLine!!.map { it.toLine() }.toMutableList(),
+            complexityJson.lineBreaks!!.map { it.toLine() }.toMutableList(),
             complexityJson.suns!!.map { it.toColoredPane() }.toMutableList(),
             complexityJson.squares!!.map { it.toColoredPane() }.toMutableList(),
         )

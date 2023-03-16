@@ -42,11 +42,12 @@ data class Pane(var x: Float, var y: Float)
 data class Complexity(
     var blackDotsOnDot: MutableList<Dot>,
     var blackDotsOnLine: MutableList<Line>,
+    var lineBreaks: MutableList<Line>,
     var suns: MutableList<ColoredPane>,
     var squares: MutableList<ColoredPane>,
 ) {
     companion object {
-        fun empty() = Complexity(mutableListOf(), mutableListOf(), mutableListOf(), mutableListOf())
+        fun empty() = Complexity(mutableListOf(), mutableListOf(), mutableListOf(), mutableListOf(), mutableListOf())
     }
 }
 
@@ -107,6 +108,7 @@ fun drawShape(boxSize: Dp, x: Float, y: Float, size: Dp, color: Color, shape: Sh
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun drawLine(boxSize: Dp, line: Line, size: Dp, color: Color,
+             lengthScale: Float = 1f,
              onEnter: () -> Unit = {}, onExit: () -> Unit = {}, onClick: () -> Unit = {}) {
     val dx = line.dot2.x - line.dot1.x
     val dy = line.dot2.y - line.dot1.y
@@ -120,7 +122,7 @@ fun drawLine(boxSize: Dp, line: Line, size: Dp, color: Color,
         .absoluteOffset(size.div(-2), size.div(-2))
         .size(size)
         .rotate(-angle + 90f)
-        .scale(length * (boxSize.div(size)), 1f)
+        .scale(length * (boxSize.div(size)) * lengthScale, 1f)
         .background(color, RectangleShape)
         .onPointerEvent(PointerEventType.Enter) { onEnter() }
         .onPointerEvent(PointerEventType.Exit) { onExit() }
