@@ -21,6 +21,7 @@ import kotlinx.coroutines.*
 import java.awt.Desktop
 import java.net.URI
 import java.util.*
+import kotlin.math.absoluteValue
 
 private val puzzleItemDp = 200.dp
 private val puzzleDrawDp = 400.dp
@@ -28,10 +29,9 @@ private val padding = 5.dp
 
 private const val puzzlesInRow = 3
 
-private val windowWidth = (puzzleItemDp + padding * 2) * puzzlesInRow
+private val windowWidth = (puzzleItemDp + padding * 3) * puzzlesInRow
 private const val windowRatio = 1f // 16/9f
 
-@OptIn(ExperimentalMaterialApi::class)
 fun main() {
     application {
         val puzzles = remember { mutableStateOf<MutableList<Puzzle>?>(null) }
@@ -67,6 +67,8 @@ fun main() {
         val isChangingIndex = remember { mutableStateOf(false) }
         val changeIndexData = remember { mutableStateOf<ChangeIndexData?>(null) }
 
+        val isSelectingNewPuzzle = remember { mutableStateOf(false) }
+
         if (loadingViewModel.loadingError.first)
             Window(::exitApplication, title = "Loading error", resizable = false) {
                 TextField(
@@ -78,21 +80,11 @@ fun main() {
         Window(
             onCloseRequest = { save(); exitApplication() },
             state = WindowState(size = DpSize(windowWidth, windowWidth / windowRatio),
-                position = WindowPosition(Alignment.Center)),
+            position = WindowPosition(Alignment.Center)),
             visible = isInMenu.value && loadingViewModel.loadingError.first.not(),
             resizable = false,
             title = "Puzzle Editor",
         ) {
-            val topMenuBox = @Composable { onClick: () -> Unit, content: @Composable BoxScope.() -> Unit ->
-                Surface(
-                    onClick = onClick,
-                    modifier = Modifier.size(40.dp - 4.dp).padding(2.dp),
-                    shape = RoundedCornerShape(10),
-                    color = Color.Gray
-                ) {
-                    Box(Modifier, Alignment.Center, content = content)
-                }
-            }
             Column {
                 if (loadingViewModel.loading) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -129,88 +121,152 @@ fun main() {
                     }
             }
             Row {
-                topMenuBox({
-                    if (loadingViewModel.loading.not()) {
-                        puzzles.value!!.add(createSimpleRectPuzzle().also {
-                            if (puzzles.value!!.size != 0)
-                                it.id = puzzles.value!!.last().id + 1
-                            else
-                                it.id = 0
-                        })
-                        save()
-                    }
+                topMenuButton({
+                    if (loadingViewModel.loading.not())
+                        isSelectingNewPuzzle.value = true
                 }) { Text("+") }
 
-                topMenuBox({
+                topMenuButton({
                     openInBrowser(URI("https://github.com/Odrian/The-Witness-Puzzle-Editor"))
                 }) {
                     Text("?")
                 }
             }
+            if (isSelectingNewPuzzle.value)
+                selectNewPuzzleDialog(isSelectingNewPuzzle, puzzles, save)
 
-            if (isChangingIndex.value) {
-                val id = remember { mutableStateOf(changeIndexData.value!!.id.toString()) }
-                AlertDialog(
-                    onDismissRequest = { isChangingIndex.value = false },
-                    shape = RoundedCornerShape(10),
-                    buttons = {
-                        val errorText = remember { mutableStateOf("") }
-                        Column(Modifier.padding(10.dp)) {
-                            Text("Change id. It was \'${changeIndexData.value?.id}\'", Modifier.padding(5.dp))
-                            TextField(id.value, { id.value = it }, label = { Text("new id") })
-                            Text(errorText.value, color = Color.Red)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Button({
-                                    changeIndexData.value = null
-                                    isChangingIndex.value = false
-                                    save()
-                                }) { Text("cancel") }
-                                Button({
-                                    puzzles.value!!.removeAt(changeIndexData.value!!.index)
-
-                                    changeIndexData.value = null
-                                    isChangingIndex.value = false
-                                    save()
-                                }) { Text("delete") }
-                                Button({
-                                    val newId = id.value.toIntOrNull()
-                                    val index = changeIndexData.value!!.index
-                                    if (newId == null) {
-                                        errorText.value = "Can't cast id to int"
-                                    } else {
-                                        var isUnique = puzzles.value!!.firstOrNull { it.id == newId } == null
-                                        isUnique = isUnique || (newId == changeIndexData.value!!.id)
-
-                                        if (isUnique.not()) {
-                                            errorText.value = "Not unique id. You can use \'${puzzles.value!!.last().id + 1}\'"
-                                        } else {
-                                            puzzles.value!![index].id = newId
-
-                                            isChangingIndex.value = false
-                                            changeIndexData.value = null
-                                            save()
-                                        }
-                                    }
-                                }) {
-                                    Text("save")
-                                }
-
-                            }
-                        }
-                    },
-                )
-            }
+            // AlertDialog
+            if (isChangingIndex.value)
+                changeIndexDialog(changeIndexData, isChangingIndex, puzzles, save)
         }
         if (isInMenu.value.not())
-            editor(selectedPuzzle.value!!) {
-                if (it) {
-                    puzzles.value!![selectedPuzzleIndex.value] = selectedPuzzle.value!!
-                    save()
-                }
-                selectedPuzzle.value = null
+            editor(
+                selectedPuzzle.value!!,
+                onClose = { isSave ->
+                    if (isSave) {
+                        puzzles.value!![selectedPuzzleIndex.value] = selectedPuzzle.value!!
+                        save()
+                    }
+                    selectedPuzzle.value = null
 
-                isInMenu.value = true
+                    isInMenu.value = true
+                }
+            )
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun selectNewPuzzleDialog(
+    isSelectingNewPuzzle: MutableState<Boolean>,
+    puzzles: MutableState<MutableList<Puzzle>?>,
+    save: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { isSelectingNewPuzzle.value = false },
+        shape = RoundedCornerShape(10),
+        buttons = {
+            val size = remember { mutableStateOf(4) }
+
+            Column(Modifier.padding(10.dp)) {
+                Text("Puzzle size (column count)", Modifier.padding(5.dp))
+                TextField(
+                    size.value.toString(),
+                    { size.value = it.toIntOrNull()?.absoluteValue ?: size.value },
+                    label = { Text("size") })
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button({
+                        isSelectingNewPuzzle.value = false
+                    }) { Text("cancel") }
+                    Button({
+                        if (size.value >= 2) {
+
+                            puzzles.value!!.add(createSimpleRectPuzzle(size.value).also {
+                                if (puzzles.value!!.size != 0)
+                                    it.id = puzzles.value!!.last().id + 1
+                                else
+                                    it.id = 0
+                            })
+                            save()
+                            isSelectingNewPuzzle.value = false
+                        }
+                    }) { Text("done") }
+                }
             }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun changeIndexDialog(
+    changeIndexData: MutableState<ChangeIndexData?>,
+    isChangingIndex: MutableState<Boolean>,
+    puzzles: MutableState<MutableList<Puzzle>?>,
+    save: () -> Unit
+) {
+    val id = remember { mutableStateOf(changeIndexData.value!!.id.toString()) }
+    AlertDialog(
+        onDismissRequest = { isChangingIndex.value = false },
+        shape = RoundedCornerShape(10),
+        buttons = {
+            val errorText = remember { mutableStateOf("") }
+            Column(Modifier.padding(10.dp)) {
+                Text("Change id. It was \'${changeIndexData.value?.id}\'", Modifier.padding(5.dp))
+                TextField(id.value, { id.value = it }, label = { Text("new id") })
+                Text(errorText.value, color = Color.Red)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button({
+                        changeIndexData.value = null
+                        isChangingIndex.value = false
+                        save()
+                    }) { Text("cancel") }
+                    Button({
+                        puzzles.value!!.removeAt(changeIndexData.value!!.index)
+
+                        changeIndexData.value = null
+                        isChangingIndex.value = false
+                        save()
+                    }) { Text("delete") }
+                    Button({
+                        val newId = id.value.toIntOrNull()
+                        val index = changeIndexData.value!!.index
+                        if (newId == null) {
+                            errorText.value = "Can't cast id to int"
+                        } else {
+                            var isUnique = puzzles.value!!.firstOrNull { it.id == newId } == null
+                            isUnique = isUnique || (newId == changeIndexData.value!!.id)
+
+                            if (isUnique.not()) {
+                                errorText.value = "Not unique id. You can use \'${puzzles.value!!.last().id + 1}\'"
+                            } else {
+                                puzzles.value!![index].id = newId
+
+                                isChangingIndex.value = false
+                                changeIndexData.value = null
+                                save()
+                            }
+                        }
+                    }) {
+                        Text("save")
+                    }
+                }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun topMenuButton(onClick: () -> Unit, content: @Composable BoxScope.() -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(40.dp - 4.dp).padding(2.dp),
+        shape = RoundedCornerShape(10),
+        color = Color.Gray
+    ) {
+        Box(Modifier, Alignment.Center, content = content)
     }
 }
 
