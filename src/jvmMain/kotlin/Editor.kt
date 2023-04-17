@@ -96,6 +96,11 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                     selectViewModel.selectedColor = null
             }
         }
+
+        val showFullscreen = remember { mutableStateOf(false) }
+        if (showFullscreen.value)
+            fullscreenPuzzleView(puzzle) { showFullscreen.value = false }
+
         MaterialTheme {
             Row(Modifier.fillMaxSize()) {
                 val colPadding = 4.dp
@@ -129,6 +134,9 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                         Box(Modifier.size(columnShapeWidth).background(Color.White, RoundedCornerShape(20)))
                     }
                     Column(Modifier.fillMaxHeight(), Arrangement.Bottom) {
+                        boxButton(colPadding, { showFullscreen.value = true }) {
+                            Text("show")
+                        }
                         boxButton(colPadding, {onClose(true)}) {
                             Text("save")
                         }
@@ -433,4 +441,47 @@ private enum class ComplexityType {
     LineBreak,
     Sun,
     Square,
+}
+
+@Composable
+private fun fullscreenPuzzleView(puzzle: Puzzle, closeRequest: () -> Unit) {
+    Window(
+        onCloseRequest = closeRequest,
+        state = WindowState(
+            size = DpSize(600.dp, 600.dp),
+            position = WindowPosition(Alignment.Center)
+        ),
+        resizable = false,
+        title = "Puzzle",
+    ) {
+        Box(Modifier.fillMaxSize().graphicsLayer { rotationX = 180f }) {
+            // puzzle dots, lines and panes
+            puzzle.startDots.forEach { drawShape(canvasWidth, it.x, it.y, startDotDp, colorPuzzle) }
+            puzzle.lines.forEachIndexed { _, it ->
+                drawLine(canvasWidth, it, lineDp, colorPuzzle)
+            }
+            puzzle.dots.forEachIndexed { _, it ->
+                drawShape(canvasWidth, it.x, it.y, lineDp, colorPuzzle)
+            }
+
+            // complexity
+            puzzle.complexity.blackDotsOnDot.forEach {
+                drawShape(canvasWidth, it.x, it.y, blackDotDp, Color.Black)
+            }
+            puzzle.complexity.blackDotsOnLine.forEach {
+                val x = (it.dot1.x + it.dot2.x) / 2
+                val y = (it.dot1.y + it.dot2.y) / 2
+                drawShape(canvasWidth, x, y, blackDotDp, Color.Black)
+            }
+            puzzle.complexity.lineBreaks.forEach {
+                drawLine(canvasWidth, it, lineDp, Color.White, lengthScale = lineBreakLength)
+            }
+            puzzle.complexity.suns.forEach {
+                drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, SunShape())
+            }
+            puzzle.complexity.squares.forEach {
+                drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, squareShape)
+            }
+        }
+    }
 }
