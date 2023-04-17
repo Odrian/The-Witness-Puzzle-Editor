@@ -60,6 +60,7 @@ enum class PuzzleColor(val string: String, val color: Color) {
     Red("red", Color.Red),
     Green("green", Color.Green),
     Blue("blue", Color.Blue),
+    Yellow("yellow", Color.Yellow),
 }
 
 fun Line.getX() = (dot1.x + dot2.x) / 2

@@ -105,7 +105,7 @@ internal fun PuzzleJson.toPuzzle(): Puzzle {
     fun PaneJson.toPane() =
         panes[this.ind]
     fun ColoredPaneJson.toColoredPane() =
-        ColoredPane(panes[this.ind], PuzzleColor.values().firstOrNull { it.string == this.color } ?: PuzzleColor.Black)
+        ColoredPane(panes[this.ind], PuzzleColor.values().firstOrNull { it.string == this.color } ?: PuzzleColor.White)
 
     return Puzzle(
         name,

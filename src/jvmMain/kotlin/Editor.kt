@@ -40,7 +40,7 @@ private val selectColor = Color.Cyan
 private val paneColor = Color(colorPuzzle.red, colorPuzzle.green, colorPuzzle.blue, 0x40 / (0xFF).toFloat())
 
 private val squareShape = RoundedCornerShape(10)
-private val lineBreakLength = 0.2f
+private const val lineBreakLength = 0.2f
 
 @Composable
 fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
@@ -90,7 +90,7 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
         LaunchedEffect(selectViewModel.selectedColor, selectViewModel.selectedComplexity) {
             if (selectViewModel.selectedComplexity in coloredComplexity) {
                 if (selectViewModel.selectedColor == null)
-                    selectViewModel.selectedColor = PuzzleColor.Black
+                    selectViewModel.selectedColor = PuzzleColor.White
             } else {
                 if (selectViewModel.selectedColor != null)
                     selectViewModel.selectedColor = null
@@ -262,7 +262,7 @@ private class SelectViewModel {
     var selectedInd by mutableStateOf(-1) // index of a selected object
     var selectedObj by mutableStateOf<PuzzleObj?>(null) // dot, line or pane
     var selectedComplexity by mutableStateOf<ComplexityType?>(null) // selected puzzle type
-    var selectedColor by mutableStateOf<PuzzleColor?>(PuzzleColor.Black)
+    var selectedColor by mutableStateOf<PuzzleColor?>(PuzzleColor.White)
 
     fun glowObj(ind: Int, obj: PuzzleObj?) {
         selectedInd = ind
