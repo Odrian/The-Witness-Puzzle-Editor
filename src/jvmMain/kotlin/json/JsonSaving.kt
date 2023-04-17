@@ -24,7 +24,7 @@ fun loadPuzzles(): MutableList<Puzzle> {
     if (file.canRead().not())
         return mutableListOf()
     val stringData = file.readText()
-    val puzzlesJson = Json.decodeFromString<List<PuzzleJson>>(stringData)
+    val puzzlesJson = Json { ignoreUnknownKeys = true }.decodeFromString<List<PuzzleJson>>(stringData)
     return puzzlesJson.map {
         it.also { it.complexityJson.removeNulls() }.toPuzzle()
     }.toMutableList()
@@ -35,7 +35,7 @@ fun Puzzle.copyPuzzle(): Puzzle {
     val puzzleJson = this.toPuzzleJson()
     val newPuzzleJson = with(puzzleJson) {
         PuzzleJson(
-            id,
+            name,
             startDots,
             endDots,
             dots.map { Dot(it.x, it.y) }.toMutableList(),

@@ -61,7 +61,7 @@ internal data class ComplexityJson(
 
 @Serializable
 internal data class PuzzleJson(
-    val id: Int,
+    val name: Int = -1, // for backward compatibility
     val startDots: List<Int>,
     val endDots: List<Int>,
     val dots: MutableList<Dot>,
@@ -88,7 +88,7 @@ internal fun Puzzle.toPuzzleJson(): PuzzleJson {
         lines.map { it.toLineJson() },
         panes,
         paneMap.map { it.first.toPaneJson() to it.second.map {
-            it2 -> it.first.toPaneJson() to it2.second.toLineJson() } },
+            it2 -> it2.first.toPaneJson() to it2.second.toLineJson() } },
         ComplexityJson(
             complexity.blackDotsOnDot.map { dots.indexOf(it) },
             complexity.blackDotsOnLine.map { it.toLineJson() },
@@ -108,7 +108,7 @@ internal fun PuzzleJson.toPuzzle(): Puzzle {
         ColoredPane(panes[this.ind], PuzzleColor.values().firstOrNull { it.string == this.color } ?: PuzzleColor.Black)
 
     return Puzzle(
-        id,
+        name,
         startDots.map { dots[it] }.toMutableList(),
         endDots.map { dots[it] }.toMutableList(),
         dots.toMutableList(),
