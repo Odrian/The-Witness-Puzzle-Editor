@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -132,7 +133,7 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                             Text("save")
                         }
                         boxButton(colPadding, { onClose(false) }) {
-                            Text("not save")
+                            Text("not save", textAlign = TextAlign.Center)
                         }
                     }
                 }
