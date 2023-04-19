@@ -42,7 +42,7 @@ internal data class ComplexityJson(
     var blackDotsOnDot: List<Int>? = null,
     var blackDotsOnLine: List<LineJson>? = null,
     var lineBreaks: List<LineJson>? = null,
-    var suns: List<ColoredPaneJson>? = null,
+    var triangles: List<ColoredPaneJson>? = null,
     var squares: List<ColoredPaneJson>? = null,
 ) {
     fun removeNulls() {
@@ -52,8 +52,8 @@ internal data class ComplexityJson(
             blackDotsOnLine = listOf()
         if (lineBreaks == null)
             lineBreaks = listOf()
-        if (suns == null)
-            suns = listOf()
+        if (triangles == null)
+            triangles = listOf()
         if (squares == null)
             squares = listOf()
     }
@@ -93,7 +93,7 @@ internal fun Puzzle.toPuzzleJson(): PuzzleJson {
             complexity.blackDotsOnDot.map { dots.indexOf(it) },
             complexity.blackDotsOnLine.map { it.toLineJson() },
             complexity.lineBreaks.map { it.toLineJson() },
-            complexity.suns.map { it.toColoredPaneJson() },
+            complexity.triangles.map { it.toColoredPaneJson() },
             complexity.squares.map { it.toColoredPaneJson() },
         )
     )
@@ -118,7 +118,7 @@ internal fun PuzzleJson.toPuzzle(): Puzzle {
             complexityJson.blackDotsOnDot!!.map { dots[it] }.toMutableList(),
             complexityJson.blackDotsOnLine!!.map { it.toLine() }.toMutableList(),
             complexityJson.lineBreaks!!.map { it.toLine() }.toMutableList(),
-            complexityJson.suns!!.map { it.toColoredPane() }.toMutableList(),
+            complexityJson.triangles!!.map { it.toColoredPane() }.toMutableList(),
             complexityJson.squares!!.map { it.toColoredPane() }.toMutableList(),
         )
     )

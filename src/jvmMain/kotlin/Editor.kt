@@ -60,7 +60,7 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
 
         val coloredComplexity = listOf(
             ComplexityType.Square,
-            ComplexityType.Sun,
+            ComplexityType.Triangle,
         )
 
         // true, if a user can put PuzzleComplexity on selected PuzzleObject
@@ -73,7 +73,7 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                 ComplexityType.LineBreak,
             )
             val complexityOnPane = listOf(
-                ComplexityType.Sun,
+                ComplexityType.Triangle,
                 ComplexityType.Square,
             )
             if (selectViewModel.selectedComplexity == null)
@@ -126,8 +126,8 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                         }
                     }
                     box(colPadding, selectViewModel.selectedComplexity, setComplexity,
-                        ComplexityType.Sun) {
-                        Box(Modifier.size(columnShapeWidth).background(Color.Black, SunShape()))
+                        ComplexityType.Triangle) {
+                        Box(Modifier.size(columnShapeWidth).graphicsLayer { rotationX = 180f }.background(Color.Black, TriangleShape()))
                     }
                     box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.Square) {
@@ -223,8 +223,8 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                             onClick = onClick
                         )
                     }
-                    puzzle.complexity.suns.forEach {
-                        drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, SunShape(),
+                    puzzle.complexity.triangles.forEach {
+                        drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, TriangleShape(),
                             onEnter = { selectViewModel.glowPane(puzzle.paneMap.indexOfFirst { it2 -> it2.first == it.pane }) },
                             onClick = onClick
                         )
@@ -243,12 +243,12 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                     Alignment.CenterHorizontally,
                 ) {
                     if (selectViewModel.selectedComplexity in coloredComplexity)
-                        PuzzleColor.values().forEach {
-                            val contrastColor = Color(Color.White.value - it.color.value + Color.Black.value)
+                        PuzzleColor.values().forEach { puzzleColor ->
+                            val contrastColor = Color(Color.White.value - puzzleColor.color.value + Color.Black.value)
                             val averVal = (contrastColor.blue + contrastColor.red + contrastColor.green) / 3
                             box(colPadding,selectViewModel.selectedColor, { selectViewModel.selectedColor = it },
-                                it,
-                                color = it.color,
+                                puzzleColor,
+                                color = puzzleColor.color,
                                 selectColor = Color(averVal, averVal, averVal),
                                 canUnselect = false) {}
                         }
@@ -374,17 +374,17 @@ private fun onPuzzleClick(
 
         PuzzleObj.Pane -> {
             val pane = puzzle.paneMap[selectViewModel.selectedInd].first
-            val contains = complexity.suns.firstOrNull { it.pane == pane } != null ||
+            val contains = complexity.triangles.firstOrNull { it.pane == pane } != null ||
                     complexity.squares.firstOrNull { it.pane == pane } != null
 
             if (contains) {
-                complexity.suns.removeIf { it.pane == pane }
+                complexity.triangles.removeIf { it.pane == pane }
                 complexity.squares.removeIf { it.pane == pane }
             } else {
                 when (selectViewModel.selectedComplexity) {
-                    ComplexityType.Sun -> {
-                        complexity.suns.removeIf { it.pane == pane }
-                        complexity.suns.add(ColoredPane(pane, selectViewModel.selectedColor!!))
+                    ComplexityType.Triangle -> {
+                        complexity.triangles.removeIf { it.pane == pane }
+                        complexity.triangles.add(ColoredPane(pane, selectViewModel.selectedColor!!))
                     }
 
                     ComplexityType.Square -> {
@@ -425,7 +425,7 @@ fun drawPuzzle(
             puzzle.complexity.blackDotsOnDot.forEach { drawShape(puzzleDrawDp, it.x, it.y, blackDotDp, Color.Black) }
             puzzle.complexity.blackDotsOnLine.forEach { drawShape(puzzleDrawDp, it.getX(), it.getY(), blackDotDp, Color.Black) }
             puzzle.complexity.lineBreaks.forEach { drawLine(puzzleDrawDp, it, lineDp, backgroundColor, lengthScale = lineBreakLength) }
-            puzzle.complexity.suns.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, SunShape()) }
+            puzzle.complexity.triangles.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, TriangleShape()) }
             puzzle.complexity.squares.forEach { drawShape(puzzleDrawDp, it.pane.x, it.pane.y, 20.dp, it.color.color, squareShape) }
         }
     }
@@ -439,7 +439,7 @@ private enum class PuzzleObj {
 private enum class ComplexityType {
     BlackDot,
     LineBreak,
-    Sun,
+    Triangle,
     Square,
 }
 
@@ -476,8 +476,8 @@ private fun fullscreenPuzzleView(puzzle: Puzzle, closeRequest: () -> Unit) {
             puzzle.complexity.lineBreaks.forEach {
                 drawLine(canvasWidth, it, lineDp, Color.White, lengthScale = lineBreakLength)
             }
-            puzzle.complexity.suns.forEach {
-                drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, SunShape())
+            puzzle.complexity.triangles.forEach {
+                drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, TriangleShape())
             }
             puzzle.complexity.squares.forEach {
                 drawShape(canvasWidth, it.pane.x, it.pane.y, paneShapeDp, it.color.color, squareShape)

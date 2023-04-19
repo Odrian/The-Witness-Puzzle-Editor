@@ -43,7 +43,7 @@ data class Complexity(
     var blackDotsOnDot: MutableList<Dot>,
     var blackDotsOnLine: MutableList<Line>,
     var lineBreaks: MutableList<Line>,
-    var suns: MutableList<ColoredPane>,
+    var triangles: MutableList<ColoredPane>,
     var squares: MutableList<ColoredPane>,
 ) {
     companion object {
@@ -58,7 +58,7 @@ enum class PuzzleColor(val string: String, val color: Color) {
     Black("black", Color.Black),
     White("white", Color.White),
     Red("red", Color.Red),
-    Green("green", Color.Green),
+    Green("green", Color(0xff00d000)),
     Blue("blue", Color.Blue),
     Yellow("yellow", Color.Yellow),
 }
@@ -66,19 +66,18 @@ enum class PuzzleColor(val string: String, val color: Color) {
 fun Line.getX() = (dot1.x + dot2.x) / 2
 fun Line.getY() = (dot1.y + dot2.y) / 2
 
-// custom sun shape
-class SunShape : Shape {
+// custom triangle shape
+class TriangleShape : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val scale = 1.3f
         val mid = size.width / 2
-        val radius = floatArrayOf(size.width / 2 * scale, size.width / 3 * scale)
-        val nPoints = 2 * 8
+        val radius = size.width / 2 * scale
+        val nPoints = 3
         val pathDots = mutableListOf<Pair<Float, Float>>()
 
         for (current in 0 until nPoints) {
-            val i: Int = current
-            val y = -cos(current * (2 * Math.PI / nPoints)) * radius[i % radius.size]
-            val x = sin(current * (2 * Math.PI / nPoints)) * radius[i % radius.size]
+            val y = -cos(current * (2 * Math.PI / nPoints) + Math.PI / 3) * radius
+            val x = sin(current * (2 * Math.PI / nPoints) + Math.PI / 3) * radius
             pathDots.add((x.toFloat() + mid) to (y.toFloat() + mid))
         }
         val path = Path()
@@ -103,7 +102,8 @@ fun drawShape(boxSize: Dp, x: Float, y: Float, size: Dp, color: Color, shape: Sh
         .background(color, shape)
         .onPointerEvent(PointerEventType.Enter) { onEnter() }
         .onPointerEvent(PointerEventType.Exit) { onExit() }
-        .onClick(onClick = onClick))
+        .onClick(onClick = onClick)
+    )
 
 // draw line shape
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
