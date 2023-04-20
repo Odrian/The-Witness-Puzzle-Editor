@@ -1,8 +1,8 @@
 package json
 
-import Dot
-import Pane
-import Puzzle
+import puzzle.Dot
+import puzzle.Pane
+import puzzle.Puzzle
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

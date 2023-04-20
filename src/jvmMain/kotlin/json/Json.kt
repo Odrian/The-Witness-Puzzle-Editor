@@ -1,12 +1,12 @@
 package json
 
-import ColoredPane
-import Complexity
-import Dot
-import Line
-import Pane
-import Puzzle
-import PuzzleColor
+import puzzle.ColoredPane
+import puzzle.Complexity
+import puzzle.Dot
+import puzzle.Line
+import puzzle.Pane
+import puzzle.Puzzle
+import puzzle.PuzzleColor
 import kotlinx.serialization.Serializable
 
 /*

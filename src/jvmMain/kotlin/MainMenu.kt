@@ -18,6 +18,8 @@ import json.loadPuzzles
 import json.savePath
 import json.savePuzzles
 import kotlinx.coroutines.*
+import puzzle.Puzzle
+import puzzle.createSimpleRectPuzzle
 import java.awt.Desktop
 import java.net.URI
 import java.util.*

@@ -1,3 +1,5 @@
+package puzzle
+
 fun createSimpleRectPuzzle(
     size: Int = 4,
     padding: Float = 0.18f,
@@ -10,8 +12,8 @@ fun createSimpleRectPuzzle(
     val dotByCord = { x: Float, y: Float -> Dot(padding + dist * x, padding + dist * y) }
     val dots2d = Array(count) { x -> Array(count) { y -> dotByCord(x.toFloat(), y.toFloat()) } }
 
-    val xLines = Array(count-1) { x -> Array(count) {y -> Line(dots2d[x][y], dots2d[x+1][y])} }
-    val yLines = Array(count) { x -> Array(count-1) {y -> Line(dots2d[x][y], dots2d[x][y+1])} }
+    val xLines = Array(count-1) { x -> Array(count) {y -> Line(dots2d[x][y], dots2d[x+1][y]) } }
+    val yLines = Array(count) { x -> Array(count-1) {y -> Line(dots2d[x][y], dots2d[x][y+1]) } }
 
     val allLines = xLines.flatten().plus(yLines.flatten()).toMutableList()
     val allDots = dots2d.flatten().toMutableList()

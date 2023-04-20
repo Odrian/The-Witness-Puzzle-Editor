@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
+import puzzle.*
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -263,29 +264,6 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
     }
 }
 
-private class SelectViewModel {
-    var selectedInd by mutableStateOf(-1) // index of a selected object
-    var selectedObj by mutableStateOf<PuzzleObj?>(null) // dot, line or pane
-    var selectedComplexity by mutableStateOf<ComplexityType?>(null) // selected puzzle type
-    var selectedColor by mutableStateOf<PuzzleColor?>(PuzzleColor.White)
-
-    fun glowObj(ind: Int, obj: PuzzleObj?) {
-        selectedInd = ind
-        selectedObj = obj
-    }
-    fun glowNone() = glowObj(-1, null)
-    fun glowDot(ind: Int) = glowObj(ind, PuzzleObj.Dot)
-    fun glowLine(ind: Int) = glowObj(ind, PuzzleObj.Line)
-    fun glowPane(ind: Int) = glowObj(ind, PuzzleObj.Pane)
-
-    fun redrawGlow() {
-        selectedInd.also {
-            selectedInd = -1
-            selectedInd = it
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun <T> box(
@@ -439,19 +417,6 @@ fun drawPuzzle(
     }
 }
 
-private enum class PuzzleObj {
-    Line,
-    Dot,
-    Pane,
-}
-private enum class ComplexityType {
-    StartDot,
-    BlackDot,
-    LineBreak,
-    Triangle,
-    Square,
-}
-
 @Composable
 private fun fullscreenPuzzleView(puzzle: Puzzle, closeRequest: () -> Unit) {
     Window(
@@ -493,4 +458,40 @@ private fun fullscreenPuzzleView(puzzle: Puzzle, closeRequest: () -> Unit) {
             }
         }
     }
+}
+
+private class SelectViewModel {
+    var selectedInd by mutableStateOf(-1) // index of a selected object
+    var selectedObj by mutableStateOf<PuzzleObj?>(null) // dot, line or pane
+    var selectedComplexity by mutableStateOf<ComplexityType?>(null) // selected puzzle type
+    var selectedColor by mutableStateOf<PuzzleColor?>(PuzzleColor.White)
+
+    fun glowObj(ind: Int, obj: PuzzleObj?) {
+        selectedInd = ind
+        selectedObj = obj
+    }
+    fun glowNone() = glowObj(-1, null)
+    fun glowDot(ind: Int) = glowObj(ind, PuzzleObj.Dot)
+    fun glowLine(ind: Int) = glowObj(ind, PuzzleObj.Line)
+    fun glowPane(ind: Int) = glowObj(ind, PuzzleObj.Pane)
+
+    fun redrawGlow() {
+        selectedInd.also {
+            selectedInd = -1
+            selectedInd = it
+        }
+    }
+}
+
+private enum class PuzzleObj {
+    Line,
+    Dot,
+    Pane,
+}
+private enum class ComplexityType {
+    StartDot,
+    BlackDot,
+    LineBreak,
+    Triangle,
+    Square,
 }
