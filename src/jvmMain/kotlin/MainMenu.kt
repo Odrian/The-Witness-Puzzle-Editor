@@ -169,26 +169,66 @@ private fun selectNewPuzzleDialog(
         shape = RoundedCornerShape(10),
         buttons = {
             val size = remember { mutableStateOf(4) }
+            val posX = remember { mutableStateOf(size.value) }
+            val posY = remember { mutableStateOf(size.value) }
+            val padX = remember { mutableStateOf("1.0") }
+            val padY = remember { mutableStateOf("0.0") }
 
             Column(Modifier.padding(10.dp)) {
                 Text("Puzzle size (column count)", Modifier.padding(5.dp))
                 TextField(
                     size.value.toString(),
-                    { size.value = it.toIntOrNull()?.absoluteValue ?: size.value },
+                    {
+                        size.value = it.toIntOrNull()?.absoluteValue ?: size.value
+                        posX.value = size.value
+                        posY.value = size.value
+                    },
                     label = { Text("size") })
+
+                Row(Modifier.fillMaxWidth().padding(0.dp, 10.dp), Arrangement.SpaceBetween) {
+                    TextField(
+                        posX.value.toString(),
+                        { posX.value = it.toIntOrNull()?.absoluteValue ?: posX.value },
+                        Modifier.width(65.dp),
+                        label = { Text("posX") })
+                    TextField(
+                        posY.value.toString(),
+                        { posY.value = it.toIntOrNull()?.absoluteValue ?: posY.value },
+                        Modifier.width(65.dp),
+                        label = { Text("posY") })
+                    TextField(
+                        padX.value,
+                        { padX.value = it },
+                        Modifier.width(65.dp),
+                        label = { Text("padX") })
+                    TextField(
+                        padY.value,
+                        { padY.value = it },
+                        Modifier.width(65.dp),
+                        label = { Text("padY") })
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Button({
                         isSelectingNewPuzzle.value = false
                     }) { Text("cancel") }
                     Button({
-                        if (size.value >= 2) {
+                        if (size.value >= 2 &&
+                            posX.value in (0..size.value) &&
+                            posY.value in (0..size.value) &&
+                            padX.value.toFloatOrNull() != null &&
+                            padY.value.toFloatOrNull() != null) {
 
-                            puzzles.value!!.add(createSimpleRectPuzzle(size.value).also {
-                                if (puzzles.value!!.size != 0)
-                                    it.id = puzzles.value!!.last().id + 1
-                                else
-                                    it.id = 0
+                            puzzles.value!!.add(
+                                createSimpleRectPuzzle(
+                                    size.value,
+                                    endDotPos = posX.value to posY.value,
+                                    endDotVect = padX.value.toFloat() to padY.value.toFloat(),
+                                ).also {
+                                    if (puzzles.value!!.size != 0)
+                                        it.id = puzzles.value!!.last().id + 1
+                                    else
+                                        it.id = 0
                             })
                             save()
                             isSelectingNewPuzzle.value = false

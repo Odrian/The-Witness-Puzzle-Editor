@@ -1,10 +1,12 @@
 package puzzle
 
+import kotlin.math.sqrt
+
 fun createSimpleRectPuzzle(
     size: Int = 4,
     padding: Float = 0.18f,
     endDotPos: Pair<Int, Int> = size to size,
-    endDotPad: Pair<Float, Float> = 1f to 0f,
+    endDotVect: Pair<Float, Float> = 1f to 0f,
 ): Puzzle {
     val count = size + 1
 
@@ -20,6 +22,11 @@ fun createSimpleRectPuzzle(
 
     val endDot1 = dots2d[endDotPos.first][endDotPos.second]
     val endDotLength = (1f - 2 * padding) / (5 - 1) / 2
+    val endDotPad = run {
+        val (x, y) = endDotVect
+        val l = sqrt(x*x + y*y)
+        return@run (x/l) to (y/l)
+    }
     val endDot2 = Dot(endDot1.x + endDotLength * endDotPad.first, endDot1.y +  + endDotLength * endDotPad.second)
 
     val endLine = Line(endDot1, endDot2)
