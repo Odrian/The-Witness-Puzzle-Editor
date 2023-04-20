@@ -1,4 +1,9 @@
-fun createSimpleRectPuzzle(size: Int = 4, padding: Float = 0.18f): Puzzle {
+fun createSimpleRectPuzzle(
+    size: Int = 4,
+    padding: Float = 0.18f,
+    endDotPos: Pair<Int, Int> = size to size,
+    endDotPad: Pair<Float, Float> = 1f to 0f,
+): Puzzle {
     val count = size + 1
 
     val dist = (1f - 2 * padding) / (count - 1)
@@ -11,10 +16,12 @@ fun createSimpleRectPuzzle(size: Int = 4, padding: Float = 0.18f): Puzzle {
     val allLines = xLines.flatten().plus(yLines.flatten()).toMutableList()
     val allDots = dots2d.flatten().toMutableList()
 
+    val endDot1 = dots2d[endDotPos.first][endDotPos.second]
     val endDotLength = (1f - 2 * padding) / (5 - 1) / 2
-    val endDot = Dot(1f - padding + endDotLength, 1f - padding)
-    allDots.add(endDot)
-    val endLine = Line(dots2d.last().last(), endDot)
+    val endDot2 = Dot(endDot1.x + endDotLength * endDotPad.first, endDot1.y +  + endDotLength * endDotPad.second)
+
+    val endLine = Line(endDot1, endDot2)
+    allDots.add(endDot2)
     allLines.add(endLine)
 
     val complexity = Complexity.empty()
@@ -41,7 +48,7 @@ fun createSimpleRectPuzzle(size: Int = 4, padding: Float = 0.18f): Puzzle {
     return Puzzle(
         0,
         mutableListOf(dots2d[0][0]),
-        mutableListOf(endDot),
+        mutableListOf(endDot2),
         allDots,
         allLines,
         polygonMap,
