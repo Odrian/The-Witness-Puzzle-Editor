@@ -66,6 +66,7 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
         // true, if a user can put PuzzleComplexity on selected PuzzleObject
         fun isDrawSelecting(): Boolean {
             val complexityOnDot = listOf(
+                ComplexityType.StartDot,
                 ComplexityType.BlackDot,
             )
             val complexityOnLine = listOf(
@@ -112,6 +113,10 @@ fun editor(puzzle: Puzzle, onClose: (Boolean) -> Unit) {
                 ) {
                     val setComplexity: (ComplexityType?) -> Unit = {
                         selectViewModel.selectedComplexity = it
+                    }
+                    box(colPadding, selectViewModel.selectedComplexity, setComplexity,
+                        ComplexityType.StartDot) {
+                        Box(Modifier.size(columnShapeWidth).background(colorPuzzle, CircleShape))
                     }
                     box(colPadding, selectViewModel.selectedComplexity, setComplexity,
                         ComplexityType.BlackDot) {
@@ -343,13 +348,16 @@ private fun onPuzzleClick(
     when (selectViewModel.selectedObj) {
         PuzzleObj.Dot -> {
             val dot = puzzle.dots[selectViewModel.selectedInd]
-            val contains = complexity.blackDotsOnDot.contains(dot)
+            val contains = complexity.blackDotsOnDot.contains(dot) ||
+                    puzzle.startDots.contains(dot)
 
             if (contains) {
                 complexity.blackDotsOnDot.remove(dot)
+                puzzle.startDots.remove(dot)
             } else
                 when (selectViewModel.selectedComplexity) {
                     ComplexityType.BlackDot -> { complexity.blackDotsOnDot.add(dot) }
+                    ComplexityType.StartDot -> { puzzle.startDots.add(dot) }
 
                     else -> {}
                 }
@@ -437,6 +445,7 @@ private enum class PuzzleObj {
     Pane,
 }
 private enum class ComplexityType {
+    StartDot,
     BlackDot,
     LineBreak,
     Triangle,
